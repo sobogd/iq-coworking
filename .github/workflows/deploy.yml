@@ -1,0 +1,34 @@
+name: Deploy to Prod
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy gateway to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: deployer
+          key: ${{ secrets.SSH_KEY }}
+          source: "vps_gateway.py"
+          target: "/home/deployer/iq-gw"
+          overwrite: true
+
+      - name: Restart on VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: deployer
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            pm2 restart iq-gw || pm2 start /home/deployer/iq-gw/run.sh --name iq-gw
+            pm2 save
