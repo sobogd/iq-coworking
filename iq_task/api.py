@@ -8,7 +8,7 @@ import grpc
 
 from . import task_pb2, task_pb2_grpc
 from .config import (MAX_TEXT_BYTES, SERVER_HOST, SERVER_PORT,
-                     get_credentials)
+                     get_credentials, get_work_token)
 from .pipeline import run_pipeline
 from .state import Registry, Task, load_task
 
@@ -29,6 +29,9 @@ class HarnessServicer(task_pb2_grpc.HarnessServicer):
             return True
         md = dict(context.invocation_metadata())
         token = md.get("x-iq-token", "")
+        work = get_work_token()
+        if work and secrets.compare_digest(token, work):
+            return True
         exp = self.tokens.get(token)
         if exp is None or time.time() > exp:
             await context.abort(grpc.StatusCode.UNAUTHENTICATED, "bad token")
@@ -43,6 +46,10 @@ class HarnessServicer(task_pb2_grpc.HarnessServicer):
 
     # -- rpcs --------------------------------------------------------------
     async def Login(self, request, context):
+        if get_work_token():
+            await context.abort(grpc.StatusCode.UNAUTHENTICATED,
+                               "login disabled: IQ_WORK_TOKEN in use")
+            return None
         login, password, _ = get_credentials()
         self._drop_expired()
         if (len(self.login_hits) >= LOGIN_RATE[0]

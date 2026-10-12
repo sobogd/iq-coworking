@@ -42,6 +42,10 @@ def get_credentials() -> tuple[str, str, str]:
             e.get("IQ_TASK_EDGE_TOKEN", ""))
 
 
+def get_work_token() -> str:
+    return env().get("IQ_WORK_TOKEN", "")
+
+
 @dataclass(frozen=True)
 class Settings:
     model: str = "mtplx-qwen38-27b-optimized-speed"
