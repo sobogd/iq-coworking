@@ -3,7 +3,8 @@ __pycache__/
 *.pyc
 .env
 logs/
-*.egg-info/.llm-harness/
+*.egg-info/
+.llm-harness/
 .server.log
 .e2e*
 *.log
