@@ -7,8 +7,8 @@ import time
 import grpc
 
 from . import task_pb2, task_pb2_grpc
-from .config import (MAX_TEXT_BYTES, SERVER_HOST, SERVER_PORT,
-                     get_credentials, get_work_token)
+from .config import (CERT_FILE, KEY_FILE, MAX_TEXT_BYTES, SERVER_HOST,
+                     SERVER_PORT, get_credentials, get_work_token)
 from .pipeline import run_pipeline
 from .state import Registry, Task, load_task
 
@@ -182,7 +182,10 @@ def start_server() -> tuple[grpc.aio.Server, HarnessServicer]:
     servicer = HarnessServicer(registry)
     server = grpc.aio.server()
     task_pb2_grpc.add_HarnessServicer_to_server(servicer, server)
-    server.add_insecure_port(f"{SERVER_HOST}:{SERVER_PORT}")
+    key = KEY_FILE.read_bytes()
+    cert = CERT_FILE.read_bytes()
+    creds = grpc.ssl_server_credentials([(key, cert)])
+    server.add_secure_port(f"{SERVER_HOST}:{SERVER_PORT}", creds)
     return server, servicer
 
 

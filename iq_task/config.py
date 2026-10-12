@@ -11,6 +11,8 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 46000
+CERT_FILE = pathlib.Path.home() / "work" / "certs" / "iq-task.crt"
+KEY_FILE = pathlib.Path.home() / "work" / "certs" / "iq-task.key"
 EDGE_LOCAL_PORT = 46001
 EDGE_K = 8
 MAX_TEXT_BYTES = 4 * 1024 * 1024
@@ -35,11 +37,10 @@ def env() -> dict[str, str]:
     return {**load_env_file(ENV_FILE), **os.environ}
 
 
-def get_credentials() -> tuple[str, str, str]:
+def get_credentials() -> tuple[str, str]:
     e = env()
     return (e.get("IQ_TASK_LOGIN", "iq"),
-            e.get("IQ_TASK_PASSWORD", ""),
-            e.get("IQ_TASK_EDGE_TOKEN", ""))
+            e.get("IQ_TASK_PASSWORD", ""))
 
 
 def get_work_token() -> str:

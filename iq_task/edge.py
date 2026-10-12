@@ -11,12 +11,10 @@ from __future__ import annotations
 
 import asyncio
 import os
-import secrets
 import socket
 import struct
-import sys
 
-from .config import EDGE_K, env, get_credentials
+from .config import EDGE_K
 
 VPS_HOST = os.environ.get("IQ_TASK_VPS_HOST", "46.225.143.221")
 VPS_PORT = int(os.environ.get("IQ_TASK_VPS_PORT", "46001"))
@@ -72,13 +70,13 @@ class Edge:
         await self.q.put((99, b""))
 
 
-async def dial(token: str) -> Edge | None:
+async def dial() -> Edge | None:
     try:
         reader, writer = await asyncio.wait_for(
             asyncio.open_connection(VPS_HOST, VPS_PORT), timeout=15)
     except OSError:
         return None
-    writer.write(HELLO_MAGIC + token.encode() + b"\n")
+    writer.write(HELLO_MAGIC + b"\n")
     await writer.drain()
     ack = await reader.read(4)
     if ack != b"OK\n":
@@ -194,11 +192,10 @@ async def edge_main_loop(edge: Edge) -> None:
         await run_session(edge, (t, payload))
 
 
-async def connect_slot(slot: int, token: str,
-                       edges: list[Edge | None]) -> None:
+async def connect_slot(slot: int, edges: list[Edge | None]) -> None:
     delay = 1.0
     while True:
-        e = await dial(token)
+        e = await dial()
         if e is not None:
             edges[slot] = e
             await edge_loop(e)
@@ -210,13 +207,9 @@ async def connect_slot(slot: int, token: str,
 
 
 async def main() -> None:
-    token = get_credentials()[2]
-    if not token:
-        print("IQ_TASK_EDGE_TOKEN is empty (~/work/.env)", file=sys.stderr)
-        sys.exit(1)
     edges: list[Edge | None] = [None] * EDGE_K
     for slot in range(EDGE_K):
-        asyncio.create_task(connect_slot(slot, token, edges))
+        asyncio.create_task(connect_slot(slot, edges))
     print(f"iq-task edge: K={EDGE_K} -> {VPS_HOST}:{VPS_PORT}")
     while True:
         await asyncio.sleep(3600)

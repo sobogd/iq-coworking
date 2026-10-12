@@ -1,8 +1,11 @@
-"""VPS TCP gateway: authenticates edge agents, bridges clients to edges.
+"""VPS TCP gateway: bridges clients to edge agents.
 
 Stdlib only (runs on VPS python3.10 under pm2). One listen port; connections
 are distinguished by the first bytes: edge agents send the IQEDGE\x00 hello,
-everything else is a gRPC client bridged to a free edge stream.
+everything else is a gRPC (TLS) client bridged to a free edge stream.
+
+The gateway is a dumb byte pipe: it holds no secrets and never decrypts
+the client TLS — authentication happens client<->Mac (pinned cert + token).
 
 Frame layout mirrors iq_task/edge.py:
 gateway -> edge: 0x01 client data, 0x02 client write-EOF, 0x03 client gone
@@ -22,7 +25,6 @@ log = logging.getLogger("gw")
 
 HOST = os.environ.get("IQ_TASK_GW_HOST", "0.0.0.0")
 PORT = int(os.environ.get("IQ_TASK_GW_PORT", "46001"))
-EDGE_TOKEN = os.environ.get("IQ_TASK_EDGE_TOKEN", "")
 CLIENT_WAIT_TIMEOUT = 120
 
 HELLO_MAGIC = b"IQEDGE\x00"
@@ -121,12 +123,6 @@ async def register_edge(gw: Gateway, reader, writer, head: bytes):
     if len(line) > 8192 or not line.startswith(HELLO_MAGIC):
         writer.write(b"ERR\n")
         writer.close()
-        return
-    token = line[len(HELLO_MAGIC):-1].decode()
-    if not token or token != EDGE_TOKEN:
-        writer.write(b"ERR\n")
-        writer.close()
-        log.warning("edge rejected: bad token")
         return
     writer.write(b"OK\n")
     await writer.drain()
@@ -231,9 +227,6 @@ async def accept(gw: Gateway, reader, writer):
 
 
 async def run():
-    if not EDGE_TOKEN:
-        print("IQ_TASK_EDGE_TOKEN is empty; edges will be rejected",
-              file=sys.stderr)
     gw = Gateway()
     server = await asyncio.start_server(
         lambda r, w: asyncio.create_task(accept(gw, r, w)), HOST, PORT)
