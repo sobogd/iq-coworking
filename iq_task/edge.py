@@ -19,7 +19,7 @@ import sys
 from .config import EDGE_K, env, get_credentials
 
 VPS_HOST = os.environ.get("IQ_TASK_VPS_HOST", "46.225.143.221")
-VPS_PORT = int(os.environ.get("IQ_TASK_VPS_PORT", "46000"))
+VPS_PORT = int(os.environ.get("IQ_TASK_VPS_PORT", "46001"))
 LOCAL_HOST = "127.0.0.1"
 LOCAL_PORT = int(os.environ.get("IQ_TASK_LOCAL_PORT", "46000"))
 
@@ -102,6 +102,7 @@ async def edge_reader(edge: Edge) -> None:
 
 async def edge_loop(edge: Edge) -> None:
     asyncio.create_task(edge_reader(edge))
+    await edge_main_loop(edge)
 
 
 async def run_session(edge: Edge, first: tuple[int, bytes]) -> None:
@@ -169,9 +170,9 @@ async def run_session(edge: Edge, first: tuple[int, bytes]) -> None:
 
     t1 = asyncio.create_task(gw_to_local())
     t2 = asyncio.create_task(local_to_gw())
-    done, pending = await asyncio.wait({t1, t2},
+    done, notdone = await asyncio.wait({t1, t2},
                                        return_when=asyncio.FIRST_COMPLETED)
-    for t in pending:
+    for t in notdone:
         t.cancel()
     local.close()
     if not edge.dead:
@@ -195,14 +196,17 @@ async def edge_main_loop(edge: Edge) -> None:
 
 async def connect_slot(slot: int, token: str,
                        edges: list[Edge | None]) -> None:
+    delay = 1.0
     while True:
         e = await dial(token)
         if e is not None:
             edges[slot] = e
             await edge_loop(e)
-            asyncio.create_task(edge_main_loop(e))
-            return
-        await asyncio.sleep(min(30.0, 1.0 * (2 ** min(slot, 4))))
+            edges[slot] = None
+            delay = 1.0
+            continue
+        await asyncio.sleep(min(30.0, delay))
+        delay = min(30.0, delay * 2)
 
 
 async def main() -> None:

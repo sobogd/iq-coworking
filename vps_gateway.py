@@ -102,6 +102,10 @@ async def edge_reader(gw: Gateway, edge: Edge):
         edge.dead = True
         log.info("edge socket died")
         await edge.q.put((99, b""))
+        try:
+            gw.edges.remove(edge)
+        except ValueError:
+            pass
         if not edge.busy:
             gw.free.set()
 

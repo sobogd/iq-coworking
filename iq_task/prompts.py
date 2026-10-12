@@ -36,13 +36,43 @@ def _extract(text: str) -> str | None:
 
 def json_block(text: str) -> dict | None:
     m = re.search(r"```json\s*(.*?)```", text, re.DOTALL)
-    raw = _extract(m.group(1) if m else text)
-    if raw is None:
+    body = m.group(1) if m else text
+    i = body.find("{")
+    if i < 0:
         return None
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        return None
+    raw = _extract(body) or body[i:]
+    for cand in (raw, _balance(raw)):
+        try:
+            obj = json.loads(cand)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict):
+            return obj
+    return None
+
+
+def _balance(text: str) -> str:
+    stack: list[str] = []
+    in_str, esc = False, False
+    for ch in text:
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            stack.append("}" if ch == "{" else "]")
+        elif ch in "}]":
+            if stack and stack[-1] == ch:
+                stack.pop()
+    if in_str:
+        text += '"'
+    return text + "".join(reversed(stack))
 
 
 ARTIFACT_NOTE = (
@@ -58,7 +88,9 @@ def research_1a(task_text: str) -> tuple[str, str]:
         f"Task: {task_text}\n\n"
         "Explore the repo with read (directories list their entries). "
         "Pick the at most 10 files most relevant to the task: the entry "
-        "points, the code the task touches, its tests. Do not analyze yet.\n"
+        "points, the code the task touches, its tests. List only files "
+        "that already exist in the repo, not files to be created. "
+        "Do not analyze yet.\n"
         "Artifact: {\"files\": [{\"path\": \"relative/path\", "
         "\"purpose\": \"one line\"}]}")
     return SYSTEM, prompt + ARTIFACT_NOTE
