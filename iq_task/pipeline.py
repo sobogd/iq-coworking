@@ -81,7 +81,6 @@ async def _run_stage(task: Task, key: str, stage_input: dict,
             raise Stopped()
         task.data["stage_input"] = stage_input
         task.data["stage_key"] = key
-        task.save()
         registry.update(task)
         with open(log_path, "a") as log:
             log.write(f"\n=== attempt {attempt} ===\n")
@@ -233,9 +232,17 @@ def _validate_specs(obj, repo: pathlib.Path) -> list[dict]:
     return [{**s, "check": str(s.get("check", ""))} for s in out]
 
 
-def _set(task: Task, registry: Registry, stage: str, status: str) -> None:
+def _set(task: Task, registry: Registry, stage: str, status: str,
+         key: str | None = None, build_index: int | None = None,
+         review_cycle: int | None = None) -> None:
     task.stage = stage
     task.status = status
+    if key is not None:
+        task.data["stage_key"] = key
+    if build_index is not None:
+        task.data["build_index"] = build_index
+    if review_cycle is not None:
+        task.data["review_cycle"] = review_cycle
     registry.update(task)
 
 
@@ -245,7 +252,7 @@ async def run_pipeline(task: Task, registry: Registry) -> None:
     try:
         await asyncio.to_thread(clear_repo_sessions, task)
 
-        _set(task, registry, "RESEARCH", "RUNNING")
+        _set(task, registry, "RESEARCH", "RUNNING", key="RESEARCH_1A")
         obj = await _run_stage_json(task, "RESEARCH_1A", {}, registry, settings)
         files = _validate_files(obj, repo, settings.max_files)
 
@@ -282,7 +289,7 @@ async def run_pipeline(task: Task, registry: Registry) -> None:
             parents=True, exist_ok=True)
         (task.path / "artifacts" / "research.md").write_text(research_md)
 
-        _set(task, registry, "ANALYST", "RUNNING")
+        _set(task, registry, "ANALYST", "RUNNING", key="ANALYST")
         obj = await _run_stage_json(task, "ANALYST",
                                     {"research_md": research_md[:100_000]},
                                     registry, settings)
@@ -290,19 +297,17 @@ async def run_pipeline(task: Task, registry: Registry) -> None:
         (task.path / "artifacts" / "plan.json").write_text(
             json.dumps({"steps": plan}, indent=1))
 
-        _set(task, registry, "ORCHESTRATOR", "RUNNING")
+        _set(task, registry, "ORCHESTRATOR", "RUNNING", key="ORCHESTRATOR")
         obj = await _run_stage_json(task, "ORCHESTRATOR", {"plan": {"steps": plan}},
                                     registry, settings)
         specs = _validate_specs(obj, repo)
         (task.path / "artifacts" / "specs.json").write_text(
             json.dumps({"specs": specs}, indent=1))
         task.data["builds_total"] = len(specs)
-        task.data["build_index"] = 0
 
         for i, spec in enumerate(specs):
-            _set(task, registry, "BUILD", "BUILDING")
-            task.data["build_index"] = i
-            registry.update(task)
+            key = f"BUILD_{spec['id'].replace('/', '_')}"
+            _set(task, registry, "BUILD", "BUILDING", key=key, build_index=i)
             ok = False
             err_tail = ""
             for attempt in range(1, settings.stage_retries + 1):
@@ -311,7 +316,6 @@ async def run_pipeline(task: Task, registry: Registry) -> None:
                 payload = dict(spec)
                 if err_tail:
                     payload["previous_check_error"] = err_tail
-                key = f"BUILD_{spec['id'].replace('/', '_')}"
                 await _run_stage(task, key, {"spec": payload}, registry,
                                  settings)
                 ok, out = await _run_check(task.repo, spec["check"])
@@ -320,15 +324,16 @@ async def run_pipeline(task: Task, registry: Registry) -> None:
                 err_tail = out[-4000:]
             if not ok:
                 task.error = f"spec {spec['id']} check failed: {err_tail[-500:]}"
-                _set(task, registry, "BUILD", "FAILED")
+                _set(task, registry, "BUILD", "FAILED",
+                     key=f"BUILD_{spec['id'].replace('/', '_')}")
                 raise StageFailed(spec["id"], "check failed after retries")
 
         files_changed = _changed_files(task.repo)
         for cycle in range(1, settings.review_cycles + 1):
             if task.stop_file().exists():
                 raise Stopped()
-            task.data["review_cycle"] = cycle
-            _set(task, registry, "REVIEW", "REVIEW")
+            _set(task, registry, "REVIEW", "REVIEW", key="REVIEW",
+                 review_cycle=cycle)
             obj = await _run_stage_json(
                 task, "REVIEW",
                 {"files": files_changed, "specs": specs}, registry, settings)
@@ -337,12 +342,12 @@ async def run_pipeline(task: Task, registry: Registry) -> None:
             (task.path / "artifacts" / f"verdict-{cycle}.json").write_text(
                 json.dumps({"verdict": verdict, "issues": issues}, indent=1))
             if verdict == "PASS":
-                _set(task, registry, "DONE", "DONE")
+                _set(task, registry, "DONE", "DONE", key="DONE")
                 _record_repo_sessions(task)
                 return
             if cycle == settings.review_cycles:
                 task.error = f"review FAILED: {issues[:5]}"
-                _set(task, registry, "REVIEW", "FAILED")
+                _set(task, registry, "REVIEW", "FAILED", key="REVIEW")
                 _record_repo_sessions(task)
                 return
             await _run_stage(task, "FIX", {"issues": issues}, registry,

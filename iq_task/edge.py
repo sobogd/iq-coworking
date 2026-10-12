@@ -71,14 +71,17 @@ class Edge:
 
 
 async def dial() -> Edge | None:
+    writer = None
     try:
         reader, writer = await asyncio.wait_for(
             asyncio.open_connection(VPS_HOST, VPS_PORT), timeout=15)
-    except OSError:
+        writer.write(HELLO_MAGIC + b"\n")
+        await writer.drain()
+        ack = await asyncio.wait_for(reader.readuntil(b"\n"), timeout=15)
+    except (OSError, asyncio.TimeoutError, ValueError):
+        if writer is not None:
+            writer.close()
         return None
-    writer.write(HELLO_MAGIC + b"\n")
-    await writer.drain()
-    ack = await reader.read(4)
     if ack != b"OK\n":
         writer.close()
         return None
@@ -89,8 +92,10 @@ async def edge_reader(edge: Edge) -> None:
     while True:
         try:
             t, payload = await edge.read_frame()
-        except (asyncio.IncompleteReadError, ConnectionError,
-                asyncio.CancelledError):
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            log("edge reader died: %r" % Exception())
             break
         await edge.q.put((t, payload))
     if not edge.dead:
@@ -98,9 +103,23 @@ async def edge_reader(edge: Edge) -> None:
         await edge.q.put((99, b""))
 
 
+async def edge_watchdog(edge: Edge) -> None:
+    while True:
+        await asyncio.sleep(30)
+        if edge.reader.at_eof() or edge.writer.is_closing():
+            await edge.close()
+            return
+
+
 async def edge_loop(edge: Edge) -> None:
-    asyncio.create_task(edge_reader(edge))
-    await edge_main_loop(edge)
+    reader_task = asyncio.create_task(edge_reader(edge))
+    watchdog_task = asyncio.create_task(edge_watchdog(edge))
+    try:
+        await edge_main_loop(edge)
+    finally:
+        for t in (reader_task, watchdog_task):
+            t.cancel()
+        await edge.close()
 
 
 async def run_session(edge: Edge, first: tuple[int, bytes]) -> None:
@@ -173,8 +192,7 @@ async def run_session(edge: Edge, first: tuple[int, bytes]) -> None:
     for t in notdone:
         t.cancel()
     local.close()
-    if not edge.dead:
-        edge.busy = False
+    edge.busy = False
 
 
 async def edge_main_loop(edge: Edge) -> None:

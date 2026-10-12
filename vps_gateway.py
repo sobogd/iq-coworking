@@ -110,6 +110,7 @@ async def edge_reader(gw: Gateway, edge: Edge):
             pass
         if not edge.busy:
             gw.free.set()
+        await edge.close()
 
 
 async def register_edge(gw: Gateway, reader, writer, head: bytes):
@@ -213,11 +214,9 @@ async def handle_client(gw: Gateway, reader, writer, first: bytes):
 async def accept(gw: Gateway, reader, writer):
     try:
         head = await asyncio.wait_for(
-            reader.read(len(HELLO_MAGIC)), timeout=15)
-    except (asyncio.TimeoutError, ConnectionError, OSError):
-        writer.close()
-        return
-    if not head:
+            reader.readexactly(len(HELLO_MAGIC)), timeout=15)
+    except (asyncio.IncompleteReadError, asyncio.TimeoutError,
+            ConnectionError, OSError):
         writer.close()
         return
     if head.startswith(HELLO_MAGIC):
