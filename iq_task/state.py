@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import pathlib
+import shutil
 import time
 import uuid
 
@@ -121,6 +122,8 @@ class Task:
             "error": d.get("error", ""),
             "created_at": d.get("created_at", 0),
             "updated_at": d.get("updated_at", 0),
+            "stage_key": d.get("stage_key", ""),
+            "review_cycle": d.get("review_cycle", 0),
         }
 
     def artifacts(self, name: str) -> pathlib.Path:
@@ -162,6 +165,17 @@ def load_task(task_id: str) -> Task | None:
         return None
 
 
+def load_repos() -> list[str]:
+    p = STATE_ROOT / "repos.json"
+    try:
+        data = json.loads(p.read_text())
+    except (OSError, ValueError):
+        return []
+    if not isinstance(data, list):
+        return []
+    return [str(x) for x in data]
+
+
 class Registry:
     def __init__(self):
         self.tasks: dict[str, Task] = {}
@@ -201,6 +215,11 @@ class Registry:
 
     def list(self) -> list[Task]:
         return sorted(self.tasks.values(), key=lambda t: t.data["created_at"])
+
+    def delete(self, task: Task) -> None:
+        self.tasks.pop(task.id, None)
+        self.events.pop(task.id, None)
+        shutil.rmtree(task.path, ignore_errors=True)
 
     def update(self, task: Task) -> None:
         task.save()

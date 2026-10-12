@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import asyncio
+import pathlib
 import secrets
 import time
 
 import grpc
 
 from . import task_pb2, task_pb2_grpc
-from .config import (CERT_FILE, KEY_FILE, MAX_TEXT_BYTES, SERVER_HOST,
-                     SERVER_PORT, get_credentials, get_work_token)
+from .config import (CERT_FILE, KEY_FILE, MAX_ARTIFACT_BYTES, MAX_TEXT_BYTES,
+                     SERVER_HOST, SERVER_PORT, VERSION, get_credentials,
+                     get_work_token)
 from .pipeline import run_pipeline
-from .state import Registry, Task, load_task
+from .state import (RUNNING_STATUSES, TERMINAL_STATUSES, Registry, Task,
+                    load_repos, load_task)
 
 TOKEN_TTL = 86_400
 LOGIN_RATE = (5, 60)
@@ -45,6 +48,11 @@ class HarnessServicer(task_pb2_grpc.HarnessServicer):
         self.login_hits = [t for t in self.login_hits if now - t < LOGIN_RATE[1]]
 
     # -- rpcs --------------------------------------------------------------
+    async def Ping(self, request, context):
+        if not await self._check_token(context, public=True):
+            return None
+        return task_pb2.PingResponse(ts=int(time.time()), version=VERSION)
+
     async def Login(self, request, context):
         if get_work_token():
             await context.abort(grpc.StatusCode.UNAUTHENTICATED,
@@ -115,16 +123,16 @@ class HarnessServicer(task_pb2_grpc.HarnessServicer):
         queue: asyncio.Queue = asyncio.Queue()
         self.registry.subscribers(request.id).append(queue)
         try:
-            yield self._to_proto(t)
+            proto = self._to_proto(t)
             while True:
+                yield proto
+                if proto.status in TERMINAL_STATUSES:
+                    return
                 try:
                     data = await asyncio.wait_for(queue.get(), timeout=30)
                 except asyncio.TimeoutError:
-                    continue
-                task = task_pb2.Task(**data)
-                yield task
-                if task.status in ("DONE", "FAILED", "INTERRUPTED"):
-                    return
+                    continue  # heartbeat: re-yield the last snapshot
+                proto = task_pb2.Task(**data)
         finally:
             subs = self.registry.subscribers(request.id)
             if queue in subs:
@@ -153,9 +161,57 @@ class HarnessServicer(task_pb2_grpc.HarnessServicer):
             return None
         t.stop_file().unlink(missing_ok=True)
         t.error = ""
+        t.status = "QUEUED"
         self.registry.update(t)
         self._spawn(t)
         return self._to_proto(t)
+
+    async def ListRepos(self, request, context):
+        if not await self._check_token(context, public=False):
+            return None
+        paths = sorted(set(load_repos())
+                       | {t.repo for t in self.registry.list() if t.repo})
+        return task_pb2.Repos(repos=[
+            task_pb2.Repo(path=p, exists=pathlib.Path(p).is_dir())
+            for p in paths])
+
+    async def GetArtifacts(self, request, context):
+        if not await self._check_token(context, public=False):
+            return None
+        t = self.registry.get(request.id)
+        if t is None:
+            await context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            return None
+        arts = []
+        d = t.path / "artifacts"
+        if d.is_dir():
+            for f in sorted(d.iterdir()):
+                if not f.is_file():
+                    continue
+                data = f.read_bytes()
+                truncated = len(data) > MAX_ARTIFACT_BYTES
+                if truncated:
+                    data = data[:MAX_ARTIFACT_BYTES]
+                arts.append(task_pb2.Artifact(
+                    name=f.name,
+                    content=data.decode("utf-8", "replace"),
+                    truncated=truncated))
+        return task_pb2.Artifacts(artifacts=arts)
+
+    async def DeleteTask(self, request, context):
+        if not await self._check_token(context, public=False):
+            return None
+        t = self.registry.get(request.id)
+        if t is None:
+            await context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            return None
+        if t.status in RUNNING_STATUSES:
+            await context.abort(
+                grpc.StatusCode.FAILED_PRECONDITION,
+                f"stop the task first (status {t.status})")
+            return None
+        self.registry.delete(t)
+        return task_pb2.TaskRef(id=t.id)
 
     # -- helpers -------------------------------------------------------------
     def _to_proto(self, t: Task) -> task_pb2.Task:

@@ -24,29 +24,41 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ntask.proto\x12\x03iqt\"/\n\x0cLoginRequest\x12\r\n\x05login\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"2\n\rLoginResponse\x12\r\n\x05token\x18\x01 \x01(\t\x12\x12\n\nexpires_at\x18\x02 \x01(\x03\"/\n\x11\x43reateTaskRequest\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x0c\n\x04repo\x18\x02 \x01(\t\"\x15\n\x07TaskRef\x12\n\n\x02id\x18\x01 \x01(\t\"\r\n\x0bListRequest\"!\n\x05Tasks\x12\x18\n\x05tasks\x18\x01 \x03(\x0b\x32\t.iqt.Task\"\x1a\n\x0cWatchRequest\x12\n\n\x02id\x18\x01 \x01(\t\"\xaf\x01\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x0c\n\x04repo\x18\x03 \x01(\t\x12\r\n\x05stage\x18\x04 \x01(\t\x12\x0e\n\x06status\x18\x05 \x01(\t\x12\x13\n\x0b\x62uild_index\x18\x06 \x01(\x05\x12\x14\n\x0c\x62uilds_total\x18\x07 \x01(\x05\x12\r\n\x05\x65rror\x18\x08 \x01(\t\x12\x12\n\ncreated_at\x18\t \x01(\x03\x12\x12\n\nupdated_at\x18\n \x01(\x03\x32\xb2\x02\n\x07Harness\x12.\n\x05Login\x12\x11.iqt.LoginRequest\x1a\x12.iqt.LoginResponse\x12/\n\nCreateTask\x12\x16.iqt.CreateTaskRequest\x1a\t.iqt.Task\x12\"\n\x07GetTask\x12\x0c.iqt.TaskRef\x1a\t.iqt.Task\x12)\n\tListTasks\x12\x10.iqt.ListRequest\x1a\n.iqt.Tasks\x12+\n\tWatchTask\x12\x11.iqt.WatchRequest\x1a\t.iqt.Task0\x01\x12#\n\x08StopTask\x12\x0c.iqt.TaskRef\x1a\t.iqt.Task\x12%\n\nResumeTask\x12\x0c.iqt.TaskRef\x1a\t.iqt.Taskb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ntask.proto\x12\x03iqt\"\r\n\x0bPingRequest\"+\n\x0cPingResponse\x12\n\n\x02ts\x18\x01 \x01(\x03\x12\x0f\n\x07version\x18\x02 \x01(\t\"/\n\x0cLoginRequest\x12\r\n\x05login\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"2\n\rLoginResponse\x12\r\n\x05token\x18\x01 \x01(\t\x12\x12\n\nexpires_at\x18\x02 \x01(\x03\"/\n\x11\x43reateTaskRequest\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x0c\n\x04repo\x18\x02 \x01(\t\"\x15\n\x07TaskRef\x12\n\n\x02id\x18\x01 \x01(\t\"\r\n\x0bListRequest\"!\n\x05Tasks\x12\x18\n\x05tasks\x18\x01 \x03(\x0b\x32\t.iqt.Task\"$\n\x04Repo\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x0e\n\x06\x65xists\x18\x02 \x01(\x08\"!\n\x05Repos\x12\x18\n\x05repos\x18\x01 \x03(\x0b\x32\t.iqt.Repo\"<\n\x08\x41rtifact\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\x12\x11\n\ttruncated\x18\x03 \x01(\x08\"-\n\tArtifacts\x12 \n\tartifacts\x18\x01 \x03(\x0b\x32\r.iqt.Artifact\"\x1a\n\x0cWatchRequest\x12\n\n\x02id\x18\x01 \x01(\t\"\xd8\x01\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x0c\n\x04repo\x18\x03 \x01(\t\x12\r\n\x05stage\x18\x04 \x01(\t\x12\x0e\n\x06status\x18\x05 \x01(\t\x12\x13\n\x0b\x62uild_index\x18\x06 \x01(\x05\x12\x14\n\x0c\x62uilds_total\x18\x07 \x01(\x05\x12\r\n\x05\x65rror\x18\x08 \x01(\t\x12\x12\n\ncreated_at\x18\t \x01(\x03\x12\x12\n\nupdated_at\x18\n \x01(\x03\x12\x11\n\tstage_key\x18\x0b \x01(\t\x12\x14\n\x0creview_cycle\x18\x0c \x01(\x05\x32\xe2\x03\n\x07Harness\x12+\n\x04Ping\x12\x10.iqt.PingRequest\x1a\x11.iqt.PingResponse\x12.\n\x05Login\x12\x11.iqt.LoginRequest\x1a\x12.iqt.LoginResponse\x12/\n\nCreateTask\x12\x16.iqt.CreateTaskRequest\x1a\t.iqt.Task\x12\"\n\x07GetTask\x12\x0c.iqt.TaskRef\x1a\t.iqt.Task\x12)\n\tListTasks\x12\x10.iqt.ListRequest\x1a\n.iqt.Tasks\x12+\n\tWatchTask\x12\x11.iqt.WatchRequest\x1a\t.iqt.Task0\x01\x12#\n\x08StopTask\x12\x0c.iqt.TaskRef\x1a\t.iqt.Task\x12%\n\nResumeTask\x12\x0c.iqt.TaskRef\x1a\t.iqt.Task\x12(\n\nDeleteTask\x12\x0c.iqt.TaskRef\x1a\x0c.iqt.TaskRef\x12)\n\tListRepos\x12\x10.iqt.ListRequest\x1a\n.iqt.Repos\x12,\n\x0cGetArtifacts\x12\x0c.iqt.TaskRef\x1a\x0e.iqt.Artifactsb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'task_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_LOGINREQUEST']._serialized_start=19
-  _globals['_LOGINREQUEST']._serialized_end=66
-  _globals['_LOGINRESPONSE']._serialized_start=68
-  _globals['_LOGINRESPONSE']._serialized_end=118
-  _globals['_CREATETASKREQUEST']._serialized_start=120
-  _globals['_CREATETASKREQUEST']._serialized_end=167
-  _globals['_TASKREF']._serialized_start=169
-  _globals['_TASKREF']._serialized_end=190
-  _globals['_LISTREQUEST']._serialized_start=192
-  _globals['_LISTREQUEST']._serialized_end=205
-  _globals['_TASKS']._serialized_start=207
-  _globals['_TASKS']._serialized_end=240
-  _globals['_WATCHREQUEST']._serialized_start=242
-  _globals['_WATCHREQUEST']._serialized_end=268
-  _globals['_TASK']._serialized_start=271
-  _globals['_TASK']._serialized_end=446
-  _globals['_HARNESS']._serialized_start=449
-  _globals['_HARNESS']._serialized_end=755
+  _globals['_PINGREQUEST']._serialized_start=19
+  _globals['_PINGREQUEST']._serialized_end=32
+  _globals['_PINGRESPONSE']._serialized_start=34
+  _globals['_PINGRESPONSE']._serialized_end=77
+  _globals['_LOGINREQUEST']._serialized_start=79
+  _globals['_LOGINREQUEST']._serialized_end=126
+  _globals['_LOGINRESPONSE']._serialized_start=128
+  _globals['_LOGINRESPONSE']._serialized_end=178
+  _globals['_CREATETASKREQUEST']._serialized_start=180
+  _globals['_CREATETASKREQUEST']._serialized_end=227
+  _globals['_TASKREF']._serialized_start=229
+  _globals['_TASKREF']._serialized_end=250
+  _globals['_LISTREQUEST']._serialized_start=252
+  _globals['_LISTREQUEST']._serialized_end=265
+  _globals['_TASKS']._serialized_start=267
+  _globals['_TASKS']._serialized_end=300
+  _globals['_REPO']._serialized_start=302
+  _globals['_REPO']._serialized_end=338
+  _globals['_REPOS']._serialized_start=340
+  _globals['_REPOS']._serialized_end=373
+  _globals['_ARTIFACT']._serialized_start=375
+  _globals['_ARTIFACT']._serialized_end=435
+  _globals['_ARTIFACTS']._serialized_start=437
+  _globals['_ARTIFACTS']._serialized_end=482
+  _globals['_WATCHREQUEST']._serialized_start=484
+  _globals['_WATCHREQUEST']._serialized_end=510
+  _globals['_TASK']._serialized_start=513
+  _globals['_TASK']._serialized_end=729
+  _globals['_HARNESS']._serialized_start=732
+  _globals['_HARNESS']._serialized_end=1214
 # @@protoc_insertion_point(module_scope)

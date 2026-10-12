@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 STATE_ROOT = pathlib.Path(os.environ.get(
     "IQ_TASK_STATE", pathlib.Path.home() / ".iq-task"))
+VERSION = "0.2.0"
+MAX_ARTIFACT_BYTES = 1_000_000
 ENV_FILE = pathlib.Path.home() / "work" / ".env"
 REPO = pathlib.Path(__file__).resolve().parent.parent
 

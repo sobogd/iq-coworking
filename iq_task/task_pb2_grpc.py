@@ -34,6 +34,11 @@ class HarnessStub:
         Args:
             channel: A grpc.Channel.
         """
+        self.Ping = channel.unary_unary(
+                '/iqt.Harness/Ping',
+                request_serializer=task__pb2.PingRequest.SerializeToString,
+                response_deserializer=task__pb2.PingResponse.FromString,
+                _registered_method=True)
         self.Login = channel.unary_unary(
                 '/iqt.Harness/Login',
                 request_serializer=task__pb2.LoginRequest.SerializeToString,
@@ -69,10 +74,31 @@ class HarnessStub:
                 request_serializer=task__pb2.TaskRef.SerializeToString,
                 response_deserializer=task__pb2.Task.FromString,
                 _registered_method=True)
+        self.DeleteTask = channel.unary_unary(
+                '/iqt.Harness/DeleteTask',
+                request_serializer=task__pb2.TaskRef.SerializeToString,
+                response_deserializer=task__pb2.TaskRef.FromString,
+                _registered_method=True)
+        self.ListRepos = channel.unary_unary(
+                '/iqt.Harness/ListRepos',
+                request_serializer=task__pb2.ListRequest.SerializeToString,
+                response_deserializer=task__pb2.Repos.FromString,
+                _registered_method=True)
+        self.GetArtifacts = channel.unary_unary(
+                '/iqt.Harness/GetArtifacts',
+                request_serializer=task__pb2.TaskRef.SerializeToString,
+                response_deserializer=task__pb2.Artifacts.FromString,
+                _registered_method=True)
 
 
 class HarnessServicer:
     """Missing associated documentation comment in .proto file."""
+
+    def Ping(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def Login(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -116,9 +142,32 @@ class HarnessServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def DeleteTask(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListRepos(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetArtifacts(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_HarnessServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'Ping': grpc.unary_unary_rpc_method_handler(
+                    servicer.Ping,
+                    request_deserializer=task__pb2.PingRequest.FromString,
+                    response_serializer=task__pb2.PingResponse.SerializeToString,
+            ),
             'Login': grpc.unary_unary_rpc_method_handler(
                     servicer.Login,
                     request_deserializer=task__pb2.LoginRequest.FromString,
@@ -154,6 +203,21 @@ def add_HarnessServicer_to_server(servicer, server):
                     request_deserializer=task__pb2.TaskRef.FromString,
                     response_serializer=task__pb2.Task.SerializeToString,
             ),
+            'DeleteTask': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteTask,
+                    request_deserializer=task__pb2.TaskRef.FromString,
+                    response_serializer=task__pb2.TaskRef.SerializeToString,
+            ),
+            'ListRepos': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListRepos,
+                    request_deserializer=task__pb2.ListRequest.FromString,
+                    response_serializer=task__pb2.Repos.SerializeToString,
+            ),
+            'GetArtifacts': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetArtifacts,
+                    request_deserializer=task__pb2.TaskRef.FromString,
+                    response_serializer=task__pb2.Artifacts.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'iqt.Harness', rpc_method_handlers)
@@ -164,6 +228,33 @@ def add_HarnessServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class Harness:
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Ping(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/iqt.Harness/Ping',
+            task__pb2.PingRequest.SerializeToString,
+            task__pb2.PingResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
 
     @staticmethod
     def Login(request,
@@ -344,6 +435,87 @@ class Harness:
             '/iqt.Harness/ResumeTask',
             task__pb2.TaskRef.SerializeToString,
             task__pb2.Task.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteTask(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/iqt.Harness/DeleteTask',
+            task__pb2.TaskRef.SerializeToString,
+            task__pb2.TaskRef.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListRepos(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/iqt.Harness/ListRepos',
+            task__pb2.ListRequest.SerializeToString,
+            task__pb2.Repos.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetArtifacts(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/iqt.Harness/GetArtifacts',
+            task__pb2.TaskRef.SerializeToString,
+            task__pb2.Artifacts.FromString,
             options,
             channel_credentials,
             insecure,

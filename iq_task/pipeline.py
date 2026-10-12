@@ -80,6 +80,7 @@ async def _run_stage(task: Task, key: str, stage_input: dict,
         if task.stop_file().exists():
             raise Stopped()
         task.data["stage_input"] = stage_input
+        task.data["stage_key"] = key
         task.save()
         registry.update(task)
         with open(log_path, "a") as log:
@@ -326,6 +327,7 @@ async def run_pipeline(task: Task, registry: Registry) -> None:
         for cycle in range(1, settings.review_cycles + 1):
             if task.stop_file().exists():
                 raise Stopped()
+            task.data["review_cycle"] = cycle
             _set(task, registry, "REVIEW", "REVIEW")
             obj = await _run_stage_json(
                 task, "REVIEW",
