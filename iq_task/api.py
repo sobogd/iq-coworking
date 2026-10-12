@@ -24,14 +24,16 @@ class HarnessServicer(task_pb2_grpc.HarnessServicer):
         self.pipelines: dict[str, asyncio.Task] = {}
 
     # -- auth helpers ------------------------------------------------------
-    def _check_token(self, context, public: bool) -> None:
+    async def _check_token(self, context, public: bool) -> bool:
         if public:
-            return
+            return True
         md = dict(context.invocation_metadata())
         token = md.get("x-iq-token", "")
         exp = self.tokens.get(token)
         if exp is None or time.time() > exp:
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, "bad token")
+            await context.abort(grpc.StatusCode.UNAUTHENTICATED, "bad token")
+            return False
+        return True
 
     def _drop_expired(self) -> None:
         now = time.time()
@@ -45,49 +47,64 @@ class HarnessServicer(task_pb2_grpc.HarnessServicer):
         self._drop_expired()
         if (len(self.login_hits) >= LOGIN_RATE[0]
                 and time.time() - self.login_hits[-1] < LOGIN_RATE[1]):
-            context.abort(grpc.StatusCode.RESOURCE_EXHAUSTED, "too many logins")
+            await context.abort(
+                grpc.StatusCode.RESOURCE_EXHAUSTED, "too many logins")
+            return None
         self.login_hits.append(time.time())
         if login and (request.login != login or request.password != password):
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, "bad credentials")
+            await context.abort(
+                grpc.StatusCode.UNAUTHENTICATED, "bad credentials")
+            return None
         token = secrets.token_hex(16)
         self.tokens[token] = time.time() + TOKEN_TTL
         return task_pb2.LoginResponse(token=token,
                                       expires_at=int(time.time()) + TOKEN_TTL)
 
     async def CreateTask(self, request, context):
-        self._check_token(context, public=False)
+        if not await self._check_token(context, public=False):
+            return None
         if len(request.text.encode()) > MAX_TEXT_BYTES:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "text too large")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
+                               "text too large")
+            return None
         import pathlib
         repo = request.repo
         p = pathlib.Path(repo).expanduser()
         if not p.is_absolute() or not p.exists() or not p.is_dir():
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "bad repo path")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
+                               "bad repo path")
+            return None
         home = pathlib.Path.home()
         if not p.resolve().is_relative_to(home) or p.resolve() == home:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT,
-                          "repo must live under $HOME")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
+                               "repo must live under $HOME")
+            return None
         task = self.registry.create(request.text, str(p.resolve()))
         self._spawn(task)
         return self._to_proto(task)
 
     async def GetTask(self, request, context):
-        self._check_token(context, public=False)
+        if not await self._check_token(context, public=False):
+            return None
         t = self.registry.get(request.id)
         if t is None:
-            context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            return None
         return self._to_proto(t)
 
     async def ListTasks(self, request, context):
-        self._check_token(context, public=False)
+        if not await self._check_token(context, public=False):
+            return None
         return task_pb2.Tasks(
             tasks=[self._to_proto(t) for t in self.registry.list()])
 
     async def WatchTask(self, request, context):
-        self._check_token(context, public=False)
+        if not await self._check_token(context, public=False):
+            return
         t = self.registry.get(request.id)
         if t is None:
-            context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            return
         queue: asyncio.Queue = asyncio.Queue()
         self.registry.subscribers(request.id).append(queue)
         try:
@@ -107,21 +124,26 @@ class HarnessServicer(task_pb2_grpc.HarnessServicer):
                 subs.remove(queue)
 
     async def StopTask(self, request, context):
-        self._check_token(context, public=False)
+        if not await self._check_token(context, public=False):
+            return None
         t = self.registry.get(request.id)
         if t is None:
-            context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            return None
         t.stop_file().write_text("stop")
         return self._to_proto(t)
 
     async def ResumeTask(self, request, context):
-        self._check_token(context, public=False)
+        if not await self._check_token(context, public=False):
+            return None
         t = self.registry.get(request.id)
         if t is None:
-            context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "no such task")
+            return None
         if t.status not in ("INTERRUPTED", "FAILED"):
-            context.abort(grpc.StatusCode.FAILED_PRECONDITION,
-                          f"cannot resume from {t.status}")
+            await context.abort(grpc.StatusCode.FAILED_PRECONDITION,
+                               f"cannot resume from {t.status}")
+            return None
         t.stop_file().unlink(missing_ok=True)
         t.error = ""
         self.registry.update(t)
