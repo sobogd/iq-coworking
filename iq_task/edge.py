@@ -35,6 +35,19 @@ def log(*a):
         print("[edge]", *a, flush=True)
 
 
+def set_keepalive(writer):
+    sock = writer.get_extra_info("socket")
+    if sock is None:
+        return
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    if hasattr(socket, "TCP_KEEPIDLE"):
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60)
+    if hasattr(socket, "TCP_KEEPINTVL"):
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+    if hasattr(socket, "TCP_KEEPCOUNT"):
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCOUNT, 5)
+
+
 class Edge:
     def __init__(self, reader: asyncio.StreamReader,
                  writer: asyncio.StreamWriter):
@@ -85,6 +98,7 @@ async def dial() -> Edge | None:
     if ack != b"OK\n":
         writer.close()
         return None
+    set_keepalive(writer)
     return Edge(reader, writer)
 
 
@@ -131,6 +145,7 @@ async def run_session(edge: Edge, first: tuple[int, bytes]) -> None:
         edge.busy = False
         return
     local = edge._local
+    set_keepalive(local)
 
     local_write_open = True
     local_read_open = True
@@ -158,7 +173,7 @@ async def run_session(edge: Edge, first: tuple[int, bytes]) -> None:
                     return
             elif t == F_CLIENT_EOF:
                 try:
-                    local.close_write()
+                    local.write_eof()
                     local_write_open = False
                 except Exception:
                     return
@@ -191,6 +206,8 @@ async def run_session(edge: Edge, first: tuple[int, bytes]) -> None:
                                        return_when=asyncio.FIRST_COMPLETED)
     for t in notdone:
         t.cancel()
+    if t2 not in done and not edge.dead:
+        edge.send(F_LOCAL_CLOSED)
     local.close()
     edge.busy = False
 
@@ -204,7 +221,7 @@ async def edge_main_loop(edge: Edge) -> None:
             log("requeue(busy) 0x%02x %d" % (t, len(payload)))
             await edge.q.put((t, payload))
             continue
-        if t == F_CLIENT_GONE:
+        if t in (F_CLIENT_GONE, F_CLIENT_EOF):
             continue
         edge.busy = True
         await run_session(edge, (t, payload))
@@ -228,7 +245,7 @@ async def main() -> None:
     edges: list[Edge | None] = [None] * EDGE_K
     for slot in range(EDGE_K):
         asyncio.create_task(connect_slot(slot, edges))
-    print(f"iq-task edge: K={EDGE_K} -> {VPS_HOST}:{VPS_PORT}")
+    print(f"iq-task edge: K={EDGE_K} -> {VPS_HOST}:{VPS_PORT}", flush=True)
     while True:
         await asyncio.sleep(3600)
 

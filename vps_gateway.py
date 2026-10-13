@@ -14,6 +14,7 @@ edge -> gateway: 0x10 local data, 0x11 local write-EOF, 0x12 local closed
 import asyncio
 import logging
 import os
+import socket
 import struct
 import sys
 
@@ -33,6 +34,19 @@ F_DATA_FROM_GW, F_CLIENT_EOF, F_CLIENT_GONE = 0x01, 0x02, 0x03
 F_DATA_TO_GW, F_LOCAL_EOF, F_LOCAL_CLOSED = 0x10, 0x11, 0x12
 
 CHUNK = 65536
+
+
+def set_keepalive(writer):
+    sock = writer.get_extra_info("socket")
+    if sock is None:
+        return
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    if hasattr(socket, "TCP_KEEPIDLE"):
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60)
+    if hasattr(socket, "TCP_KEEPINTVL"):
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+    if hasattr(socket, "TCP_KEEPCOUNT"):
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCOUNT, 5)
 
 
 class Edge:
@@ -197,11 +211,20 @@ async def handle_client(gw: Gateway, reader, writer, first: bytes):
 
     t1 = asyncio.create_task(client_to_edge())
     t2 = asyncio.create_task(edge_to_client())
-    await asyncio.wait({t1, t2}, return_when=asyncio.FIRST_COMPLETED)
-    for t in (t1, t2):
-        t.cancel()
-    if not edge.dead and client_read_open:
-        edge.send(F_CLIENT_GONE)
+    done, notdone = await asyncio.wait({t1, t2},
+                                       return_when=asyncio.FIRST_COMPLETED)
+    if t2 not in done:
+        # Client went first: keep draining the edge queue until the edge's
+        # final frame (F_LOCAL_CLOSED) or a 10s timeout, so no stale frame
+        # poisons the next session on this slot.
+        try:
+            await asyncio.wait_for(asyncio.shield(t2), timeout=10)
+        except asyncio.TimeoutError:
+            t2.cancel()
+    else:
+        t1.cancel()
+        if not edge.dead and client_read_open:
+            edge.send(F_CLIENT_GONE)
     writer.close()
     try:
         await writer.wait_closed()
@@ -223,6 +246,7 @@ async def accept(gw: Gateway, reader, writer):
         asyncio.create_task(register_edge(gw, reader, writer, head))
     else:
         asyncio.create_task(handle_client(gw, reader, writer, head))
+    set_keepalive(writer)
 
 
 async def run():
