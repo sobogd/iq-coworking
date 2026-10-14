@@ -8,10 +8,16 @@ import shutil
 import time
 import uuid
 
-from .config import STATE_ROOT
+from .config import SESS_DIR
 
-RUNNING_STATUSES = ("QUEUED", "RUNNING", "BUILDING", "REVIEW")
-TERMINAL_STATUSES = ("DONE", "FAILED", "INTERRUPTED")
+IDLE = "IDLE"
+BUSY = "BUSY"
+STOPPED = "STOPPED"
+FAILED = "FAILED"
+# statuses from which the session can be resumed
+RESUMABLE = (STOPPED, FAILED)
+# statuses that stop the Watch stream (everything except BUSY)
+ACTIVE = (BUSY,)
 
 
 def _atomic_write(path: pathlib.Path, data: bytes) -> None:
@@ -29,71 +35,37 @@ def _atomic_write(path: pathlib.Path, data: bytes) -> None:
         os.close(dfd)
 
 
-def load_env_repo_sessions() -> dict[str, list[str]]:
-    p = STATE_ROOT / "repo_sessions.json"
-    try:
-        return json.loads(p.read_text())
-    except (OSError, ValueError):
-        return {}
-
-
-def save_repo_sessions(data: dict[str, list[str]]) -> None:
-    _atomic_write(STATE_ROOT / "repo_sessions.json",
-                  json.dumps(data).encode())
-
-
-class Task:
+class Session:
     def __init__(self, data: dict):
         self.data = data
 
-    # -- fields ----------------------------------------------------------
     @property
     def id(self) -> str:
         return self.data["id"]
-
-    @property
-    def text(self) -> str:
-        return self.data.get("text", "")
 
     @property
     def repo(self) -> str:
         return self.data.get("repo", "")
 
     @property
-    def path(self) -> pathlib.Path:
-        return STATE_ROOT / "tasks" / self.id
+    def system_prompt(self) -> str:
+        return self.data.get("system_prompt", "")
 
     @property
-    def stage(self) -> str:
-        return self.data.get("stage", "")
+    def title(self) -> str:
+        return self.data.get("title", "")
 
-    @stage.setter
-    def stage(self, v: str) -> None:
-        self.data["stage"] = v
+    @title.setter
+    def title(self, v: str) -> None:
+        self.data["title"] = v
 
     @property
     def status(self) -> str:
-        return self.data.get("status", "QUEUED")
+        return self.data.get("status", IDLE)
 
     @status.setter
     def status(self, v: str) -> None:
         self.data["status"] = v
-
-    @property
-    def sessions(self) -> dict[str, str]:
-        return self.data.setdefault("sessions", {})
-
-    @property
-    def rounds(self) -> dict[str, dict]:
-        return self.data.setdefault("rounds", {})
-
-    @property
-    def build_index(self) -> int:
-        return self.data.get("build_index", 0)
-
-    @property
-    def builds_total(self) -> int:
-        return self.data.get("builds_total", 0)
 
     @property
     def error(self) -> str:
@@ -103,7 +75,36 @@ class Task:
     def error(self, v: str) -> None:
         self.data["error"] = v
 
-    # -- disk ------------------------------------------------------------
+    @property
+    def mtplx_session_id(self) -> str:
+        return self.data.get("mtplx_session_id", "")
+
+    @mtplx_session_id.setter
+    def mtplx_session_id(self, v: str) -> None:
+        self.data["mtplx_session_id"] = v
+
+    @property
+    def thinking(self) -> str:
+        return self.data.get("thinking") or "low"
+
+    @property
+    def context_tokens(self) -> int:
+        return int(self.data.get("context_tokens") or 32_000)
+
+    @property
+    def path(self) -> pathlib.Path:
+        return SESS_DIR / self.id
+
+    @property
+    def transcript(self) -> pathlib.Path:
+        return self.path / "transcript.jsonl"
+
+    def stop_file(self) -> pathlib.Path:
+        return self.path / "STOP"
+
+    def is_stopped(self) -> bool:
+        return self.stop_file().exists()
+
     def save(self) -> None:
         self.data["updated_at"] = int(time.time())
         _atomic_write(self.path / "state.json",
@@ -113,60 +114,55 @@ class Task:
         d = self.data
         return {
             "id": d["id"],
-            "text": d.get("text", ""),
             "repo": d.get("repo", ""),
-            "stage": d.get("stage", ""),
-            "status": d.get("status", ""),
-            "build_index": d.get("build_index", 0),
-            "builds_total": d.get("builds_total", 0),
+            "system_prompt": d.get("system_prompt", ""),
+            "title": d.get("title", ""),
+            "status": d.get("status", IDLE),
             "error": d.get("error", ""),
             "created_at": d.get("created_at", 0),
             "updated_at": d.get("updated_at", 0),
-            "stage_key": d.get("stage_key", ""),
-            "review_cycle": d.get("review_cycle", 0),
+            "thinking": d.get("thinking") or "low",
+            "context_tokens": int(d.get("context_tokens") or 32_000),
         }
 
-    def artifacts(self, name: str) -> pathlib.Path:
-        return self.path / "artifacts" / name
 
-    def transcript(self, stage_key: str) -> pathlib.Path:
-        return self.path / "stages" / stage_key / "transcript.jsonl"
-
-    def stop_file(self) -> pathlib.Path:
-        return self.path / "STOP"
-
-
-def create_task(text: str, repo: str) -> Task:
+def create_session(repo: str, system_prompt: str, message: str,
+                   thinking: str = "low",
+                   context_tokens: int = 0) -> Session:
+    if thinking not in ("off", "low", "medium", "xhigh"):
+        thinking = "low"
+    if not 4_096 <= int(context_tokens or 0) <= 204_800:
+        context_tokens = 32_000
     now = int(time.time())
-    t = Task({
+    title = (message.strip().splitlines() or [""])[0][:80]
+    s = Session({
         "id": uuid.uuid4().hex,
-        "text": text,
         "repo": repo,
-        "stage": "",
-        "status": "QUEUED",
-        "build_index": 0,
-        "builds_total": 0,
+        "system_prompt": system_prompt,
+        "title": title,
+        "status": IDLE,
         "error": "",
+        "mtplx_session_id": uuid.uuid4().hex,
+        "thinking": thinking,
+        "context_tokens": context_tokens,
         "created_at": now,
         "updated_at": now,
-        "sessions": {},
-        "rounds": {},
     })
-    t.path.mkdir(parents=True, exist_ok=True)
-    t.save()
-    return t
+    s.path.mkdir(parents=True, exist_ok=True)
+    s.save()
+    return s
 
 
-def load_task(task_id: str) -> Task | None:
-    p = STATE_ROOT / "tasks" / task_id / "state.json"
+def load_session(session_id: str) -> Session | None:
+    p = SESS_DIR / session_id / "state.json"
     try:
-        return Task(json.loads(p.read_text()))
+        return Session(json.loads(p.read_text()))
     except (OSError, ValueError):
         return None
 
 
 def load_repos() -> list[str]:
-    p = STATE_ROOT / "repos.json"
+    p = SESS_DIR.parent / "repos.json"
     try:
         data = json.loads(p.read_text())
     except (OSError, ValueError):
@@ -176,56 +172,66 @@ def load_repos() -> list[str]:
     return [str(x) for x in data]
 
 
+def save_repo(path: str) -> None:
+    repos = load_repos()
+    if path not in repos:
+        p = SESS_DIR.parent / "repos.json"
+        _atomic_write(p, json.dumps(repos + [path]).encode())
+
+
 class Registry:
     def __init__(self):
-        self.tasks: dict[str, Task] = {}
+        self.sessions: dict[str, Session] = {}
         self.events: dict[str, list[asyncio.Queue]] = {}
-        self._scanning = False
 
     def rescan(self) -> None:
-        base = STATE_ROOT / "tasks"
-        if not base.exists():
+        if not SESS_DIR.exists():
             return
-        for d in base.iterdir():
+        for d in SESS_DIR.iterdir():
             if not d.is_dir():
                 continue
-            t = load_task(d.name)
-            if t is None:
+            s = load_session(d.name)
+            if s is None:
                 continue
-            self.tasks[t.id] = t
-            if t.status in RUNNING_STATUSES:
-                t.status = "INTERRUPTED"
-                t.error = "server restarted"
-                t.save()
+            self.sessions[s.id] = s
+            self.events.setdefault(s.id, [])
+            if s.status in ACTIVE:
+                s.status = STOPPED
+                s.error = "server restarted"
+                s.save()
 
-    def create(self, text: str, repo: str) -> Task:
-        t = create_task(text, repo)
-        self.tasks[t.id] = t
-        self.events[t.id] = []
-        return t
+    def create(self, repo: str, system_prompt: str, message: str,
+               thinking: str = "low",
+               context_tokens: int = 0) -> Session:
+        s = create_session(repo, system_prompt, message, thinking,
+                           context_tokens)
+        self.sessions[s.id] = s
+        self.events.setdefault(s.id, [])
+        return s
 
-    def get(self, task_id: str) -> Task | None:
-        t = self.tasks.get(task_id)
-        if t is None:
-            t = load_task(task_id)
-            if t is not None:
-                self.tasks[task_id] = t
-                self.events.setdefault(task_id, [])
-        return t
+    def get(self, session_id: str) -> Session | None:
+        s = self.sessions.get(session_id)
+        if s is None:
+            s = load_session(session_id)
+            if s is not None:
+                self.sessions[session_id] = s
+                self.events.setdefault(session_id, [])
+        return s
 
-    def list(self) -> list[Task]:
-        return sorted(self.tasks.values(), key=lambda t: t.data["created_at"])
+    def list(self) -> list[Session]:
+        return sorted(self.sessions.values(),
+                      key=lambda s: s.data["created_at"])
 
-    def delete(self, task: Task) -> None:
-        self.tasks.pop(task.id, None)
-        self.events.pop(task.id, None)
-        shutil.rmtree(task.path, ignore_errors=True)
+    def delete(self, session: Session) -> None:
+        self.sessions.pop(session.id, None)
+        self.events.pop(session.id, None)
+        shutil.rmtree(session.path, ignore_errors=True)
 
-    def update(self, task: Task) -> None:
-        task.save()
-        for q in self.events.get(task.id, ()):
+    def update(self, session: Session) -> None:
+        session.save()
+        for q in self.events.get(session.id, ()):
             if q.qsize() < 1000:
-                q.put_nowait(task.to_proto_dict())
+                q.put_nowait(session.to_proto_dict())
 
-    def subscribers(self, task_id: str) -> list[asyncio.Queue]:
-        return self.events.setdefault(task_id, [])
+    def subscribers(self, session_id: str) -> list[asyncio.Queue]:
+        return self.events.setdefault(session_id, [])

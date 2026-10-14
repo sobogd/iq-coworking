@@ -19,15 +19,26 @@ class ContextOverflowError(LLMError):
     pass
 
 
+THINKING_LEVELS = ("low", "medium", "xhigh")
+
+
+def thinking_params(level: str) -> dict:
+    level = (level or "low").lower()
+    if level in THINKING_LEVELS:
+        return {"enable_thinking": True, "reasoning_effort": level}
+    return {"enable_thinking": False}
+
+
 def build_request(history: list[dict], s: Settings,
-                  tools: list[dict] | None = None) -> dict:
+                  tools: list[dict] | None = None,
+                  thinking: str = "low") -> dict:
     req: dict = {
         "model": s.model,
         "stream": True,
         "stream_options": {"include_usage": True},
         "max_tokens": s.max_output_tokens,
         "messages": history,
-        "enable_thinking": False,
+        **thinking_params(thinking),
     }
     if s.temperature is not None:
         req["temperature"] = s.temperature
@@ -112,6 +123,9 @@ class LLMClient:
                            "usage": chunk["usage"]}
                 for choice in chunk.get("choices") or []:
                     delta = choice.get("delta") or {}
+                    c = delta.get("reasoning_content")
+                    if c:
+                        yield {"kind": "reasoning", "text": c}
                     c = delta.get("content")
                     if c:
                         yield {"kind": "text", "text": c}
@@ -137,34 +151,6 @@ class LLMClient:
                     await asyncio.sleep(3.0)
                     continue
                 raise
-
-    async def admin_session(self, session_id: str) -> dict | None:
-        try:
-            resp = await self._client.get(
-                self.s.base_url.rstrip("/") + "/admin/sessions",
-                headers=self.headers)
-        except httpx.HTTPError:
-            return None
-        if resp.status_code != 200:
-            return None
-        try:
-            data = resp.json()
-        except json.JSONDecodeError:
-            return None
-        for s in data.get("sessions") or []:
-            if s.get("session_id") == session_id:
-                return s
-        return None
-
-    async def admin_clear_session(self, session_id: str) -> bool:
-        try:
-            resp = await self._client.post(
-                self.s.base_url.rstrip("/")
-                + f"/admin/sessions/{session_id}/clear",
-                headers=self.headers)
-        except httpx.HTTPError:
-            return False
-        return resp.status_code < 400
 
     async def complete(self, messages: list[dict], max_tokens: int = 3000,
                        retries: int = 10) -> str:

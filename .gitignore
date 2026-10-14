@@ -8,3 +8,6 @@ logs/
 .server.log
 .e2e*
 *.log
+.DS_Store
+scratch/
+app/build/

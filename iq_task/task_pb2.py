@@ -24,41 +24,47 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ntask.proto\x12\x03iqt\"\r\n\x0bPingRequest\"+\n\x0cPingResponse\x12\n\n\x02ts\x18\x01 \x01(\x03\x12\x0f\n\x07version\x18\x02 \x01(\t\"/\n\x0cLoginRequest\x12\r\n\x05login\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"2\n\rLoginResponse\x12\r\n\x05token\x18\x01 \x01(\t\x12\x12\n\nexpires_at\x18\x02 \x01(\x03\"/\n\x11\x43reateTaskRequest\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x0c\n\x04repo\x18\x02 \x01(\t\"\x15\n\x07TaskRef\x12\n\n\x02id\x18\x01 \x01(\t\"\r\n\x0bListRequest\"!\n\x05Tasks\x12\x18\n\x05tasks\x18\x01 \x03(\x0b\x32\t.iqt.Task\"$\n\x04Repo\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x0e\n\x06\x65xists\x18\x02 \x01(\x08\"!\n\x05Repos\x12\x18\n\x05repos\x18\x01 \x03(\x0b\x32\t.iqt.Repo\"<\n\x08\x41rtifact\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\x12\x11\n\ttruncated\x18\x03 \x01(\x08\"-\n\tArtifacts\x12 \n\tartifacts\x18\x01 \x03(\x0b\x32\r.iqt.Artifact\"\x1a\n\x0cWatchRequest\x12\n\n\x02id\x18\x01 \x01(\t\"\xd8\x01\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\x12\x0c\n\x04repo\x18\x03 \x01(\t\x12\r\n\x05stage\x18\x04 \x01(\t\x12\x0e\n\x06status\x18\x05 \x01(\t\x12\x13\n\x0b\x62uild_index\x18\x06 \x01(\x05\x12\x14\n\x0c\x62uilds_total\x18\x07 \x01(\x05\x12\r\n\x05\x65rror\x18\x08 \x01(\t\x12\x12\n\ncreated_at\x18\t \x01(\x03\x12\x12\n\nupdated_at\x18\n \x01(\x03\x12\x11\n\tstage_key\x18\x0b \x01(\t\x12\x14\n\x0creview_cycle\x18\x0c \x01(\x05\x32\xe2\x03\n\x07Harness\x12+\n\x04Ping\x12\x10.iqt.PingRequest\x1a\x11.iqt.PingResponse\x12.\n\x05Login\x12\x11.iqt.LoginRequest\x1a\x12.iqt.LoginResponse\x12/\n\nCreateTask\x12\x16.iqt.CreateTaskRequest\x1a\t.iqt.Task\x12\"\n\x07GetTask\x12\x0c.iqt.TaskRef\x1a\t.iqt.Task\x12)\n\tListTasks\x12\x10.iqt.ListRequest\x1a\n.iqt.Tasks\x12+\n\tWatchTask\x12\x11.iqt.WatchRequest\x1a\t.iqt.Task0\x01\x12#\n\x08StopTask\x12\x0c.iqt.TaskRef\x1a\t.iqt.Task\x12%\n\nResumeTask\x12\x0c.iqt.TaskRef\x1a\t.iqt.Task\x12(\n\nDeleteTask\x12\x0c.iqt.TaskRef\x1a\x0c.iqt.TaskRef\x12)\n\tListRepos\x12\x10.iqt.ListRequest\x1a\n.iqt.Repos\x12,\n\x0cGetArtifacts\x12\x0c.iqt.TaskRef\x1a\x0e.iqt.Artifactsb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ntask.proto\x12\x02iq\"\r\n\x0bPingRequest\"1\n\x0cPingResponse\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x10\n\x08sessions\x18\x02 \x01(\x05\"\x1d\n\x0cLoginRequest\x12\r\n\x05token\x18\x01 \x01(\t\"\x1e\n\rLoginResponse\x12\r\n\x05token\x18\x01 \x01(\t\"v\n\x14\x43reateSessionRequest\x12\x0c\n\x04repo\x18\x01 \x01(\t\x12\x15\n\rsystem_prompt\x18\x02 \x01(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x10\n\x08thinking\x18\x04 \x01(\t\x12\x16\n\x0e\x63ontext_tokens\x18\x05 \x01(\x05\"\xba\x01\n\x07Session\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04repo\x18\x02 \x01(\t\x12\x15\n\rsystem_prompt\x18\x03 \x01(\t\x12\r\n\x05title\x18\x04 \x01(\t\x12\x0e\n\x06status\x18\x05 \x01(\t\x12\r\n\x05\x65rror\x18\x06 \x01(\t\x12\x12\n\ncreated_at\x18\x07 \x01(\x03\x12\x12\n\nupdated_at\x18\x08 \x01(\x03\x12\x10\n\x08thinking\x18\t \x01(\t\x12\x16\n\x0e\x63ontext_tokens\x18\n \x01(\x05\"\x18\n\nSessionRef\x12\n\n\x02id\x18\x01 \x01(\t\"\r\n\x0bListRequest\")\n\x08Sessions\x12\x1d\n\x08sessions\x18\x01 \x03(\x0b\x32\x0b.iq.Session\"\x1a\n\x0cWatchRequest\x12\n\n\x02id\x18\x01 \x01(\t\"*\n\x0eMessageRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\"\x1b\n\x0b\x44irsRequest\x12\x0c\n\x04path\x18\x01 \x01(\t\"\"\n\x04\x44irs\x12\x0c\n\x04path\x18\x01 \x01(\t\x12\x0c\n\x04\x64irs\x18\x02 \x03(\t\"+\n\x0f\x43ompleteRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04text\x18\x02 \x01(\t\" \n\x10\x43ompleteResponse\x12\x0c\n\x04text\x18\x01 \x01(\t\"W\n\x0f\x41\x63tivityMessage\x12\x0c\n\x04role\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\x12\x12\n\ntool_calls\x18\x03 \x03(\t\x12\x11\n\treasoning\x18\x04 \x01(\t\"?\n\x08\x41\x63tivity\x12%\n\x08messages\x18\x01 \x03(\x0b\x32\x13.iq.ActivityMessage\x12\x0c\n\x04more\x18\x02 \x01(\x08\x32\xeb\x04\n\x07Harness\x12)\n\x04Ping\x12\x0f.iq.PingRequest\x1a\x10.iq.PingResponse\x12,\n\x05Login\x12\x10.iq.LoginRequest\x1a\x11.iq.LoginResponse\x12\x36\n\rCreateSession\x12\x18.iq.CreateSessionRequest\x1a\x0b.iq.Session\x12)\n\nGetSession\x12\x0e.iq.SessionRef\x1a\x0b.iq.Session\x12-\n\x0cListSessions\x12\x0f.iq.ListRequest\x1a\x0c.iq.Sessions\x12/\n\x0cWatchSession\x12\x10.iq.WatchRequest\x1a\x0b.iq.Session0\x01\x12*\n\x0bStopSession\x12\x0e.iq.SessionRef\x1a\x0b.iq.Session\x12,\n\rResumeSession\x12\x0e.iq.SessionRef\x1a\x0b.iq.Session\x12/\n\rDeleteSession\x12\x0e.iq.SessionRef\x1a\x0e.iq.SessionRef\x12.\n\x0bSendMessage\x12\x12.iq.MessageRequest\x1a\x0b.iq.Session\x12+\n\x0bGetActivity\x12\x0e.iq.SessionRef\x1a\x0c.iq.Activity\x12%\n\x08ListDirs\x12\x0f.iq.DirsRequest\x1a\x08.iq.Dirs\x12\x35\n\x08\x43omplete\x12\x13.iq.CompleteRequest\x1a\x14.iq.CompleteResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'task_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_PINGREQUEST']._serialized_start=19
-  _globals['_PINGREQUEST']._serialized_end=32
-  _globals['_PINGRESPONSE']._serialized_start=34
-  _globals['_PINGRESPONSE']._serialized_end=77
-  _globals['_LOGINREQUEST']._serialized_start=79
-  _globals['_LOGINREQUEST']._serialized_end=126
-  _globals['_LOGINRESPONSE']._serialized_start=128
-  _globals['_LOGINRESPONSE']._serialized_end=178
-  _globals['_CREATETASKREQUEST']._serialized_start=180
-  _globals['_CREATETASKREQUEST']._serialized_end=227
-  _globals['_TASKREF']._serialized_start=229
-  _globals['_TASKREF']._serialized_end=250
-  _globals['_LISTREQUEST']._serialized_start=252
-  _globals['_LISTREQUEST']._serialized_end=265
-  _globals['_TASKS']._serialized_start=267
-  _globals['_TASKS']._serialized_end=300
-  _globals['_REPO']._serialized_start=302
-  _globals['_REPO']._serialized_end=338
-  _globals['_REPOS']._serialized_start=340
-  _globals['_REPOS']._serialized_end=373
-  _globals['_ARTIFACT']._serialized_start=375
-  _globals['_ARTIFACT']._serialized_end=435
-  _globals['_ARTIFACTS']._serialized_start=437
-  _globals['_ARTIFACTS']._serialized_end=482
-  _globals['_WATCHREQUEST']._serialized_start=484
-  _globals['_WATCHREQUEST']._serialized_end=510
-  _globals['_TASK']._serialized_start=513
-  _globals['_TASK']._serialized_end=729
-  _globals['_HARNESS']._serialized_start=732
-  _globals['_HARNESS']._serialized_end=1214
+  _globals['_PINGREQUEST']._serialized_start=18
+  _globals['_PINGREQUEST']._serialized_end=31
+  _globals['_PINGRESPONSE']._serialized_start=33
+  _globals['_PINGRESPONSE']._serialized_end=82
+  _globals['_LOGINREQUEST']._serialized_start=84
+  _globals['_LOGINREQUEST']._serialized_end=113
+  _globals['_LOGINRESPONSE']._serialized_start=115
+  _globals['_LOGINRESPONSE']._serialized_end=145
+  _globals['_CREATESESSIONREQUEST']._serialized_start=147
+  _globals['_CREATESESSIONREQUEST']._serialized_end=265
+  _globals['_SESSION']._serialized_start=268
+  _globals['_SESSION']._serialized_end=454
+  _globals['_SESSIONREF']._serialized_start=456
+  _globals['_SESSIONREF']._serialized_end=480
+  _globals['_LISTREQUEST']._serialized_start=482
+  _globals['_LISTREQUEST']._serialized_end=495
+  _globals['_SESSIONS']._serialized_start=497
+  _globals['_SESSIONS']._serialized_end=538
+  _globals['_WATCHREQUEST']._serialized_start=540
+  _globals['_WATCHREQUEST']._serialized_end=566
+  _globals['_MESSAGEREQUEST']._serialized_start=568
+  _globals['_MESSAGEREQUEST']._serialized_end=610
+  _globals['_DIRSREQUEST']._serialized_start=612
+  _globals['_DIRSREQUEST']._serialized_end=639
+  _globals['_DIRS']._serialized_start=641
+  _globals['_DIRS']._serialized_end=675
+  _globals['_COMPLETEREQUEST']._serialized_start=677
+  _globals['_COMPLETEREQUEST']._serialized_end=720
+  _globals['_COMPLETERESPONSE']._serialized_start=722
+  _globals['_COMPLETERESPONSE']._serialized_end=754
+  _globals['_ACTIVITYMESSAGE']._serialized_start=756
+  _globals['_ACTIVITYMESSAGE']._serialized_end=843
+  _globals['_ACTIVITY']._serialized_start=845
+  _globals['_ACTIVITY']._serialized_end=908
+  _globals['_HARNESS']._serialized_start=911
+  _globals['_HARNESS']._serialized_end=1530
 # @@protoc_insertion_point(module_scope)

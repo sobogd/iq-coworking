@@ -4,49 +4,20 @@ import os
 import pathlib
 from dataclasses import dataclass
 
-STATE_ROOT = pathlib.Path(os.environ.get(
-    "IQ_TASK_STATE", pathlib.Path.home() / ".iq-task"))
-VERSION = "0.2.0"
-MAX_ARTIFACT_BYTES = 1_000_000
-ENV_FILE = pathlib.Path.home() / "work" / ".env"
-REPO = pathlib.Path(__file__).resolve().parent.parent
+ENV_FILE = pathlib.Path("~/work/.env").expanduser()
+
+STATE_ROOT = pathlib.Path(
+    os.environ.get("IQ_TASK_STATE", "~/.iq-task")).expanduser()
+SESS_DIR = STATE_ROOT / "sessions"
 
 SERVER_HOST = "127.0.0.1"
-SERVER_PORT = 46000
-CERT_FILE = pathlib.Path.home() / "work" / "certs" / "iq-task.crt"
-KEY_FILE = pathlib.Path.home() / "work" / "certs" / "iq-task.key"
-EDGE_LOCAL_PORT = 46001
-EDGE_K = 8
+SERVER_PORT = int(os.environ.get("IQ_TASK_PORT", "46000"))
+CERT_FILE = pathlib.Path("~/work/certs").expanduser() / "iq-task.crt"
+KEY_FILE = pathlib.Path("~/work/certs").expanduser() / "iq-task.key"
+EDGE_K = int(os.environ.get("IQ_TASK_EDGE_K", "5"))
+
 MAX_TEXT_BYTES = 4 * 1024 * 1024
-
-
-def load_env_file(path: pathlib.Path) -> dict[str, str]:
-    out: dict[str, str] = {}
-    try:
-        lines = path.read_text().splitlines()
-    except OSError:
-        return out
-    for line in lines:
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, val = line.partition("=")
-        out[key.strip()] = val.strip().strip('"').strip("'")
-    return out
-
-
-def env() -> dict[str, str]:
-    return {**load_env_file(ENV_FILE), **os.environ}
-
-
-def get_credentials() -> tuple[str, str]:
-    e = env()
-    return (e.get("IQ_TASK_LOGIN", "iq"),
-            e.get("IQ_TASK_PASSWORD", ""))
-
-
-def get_work_token() -> str:
-    return env().get("IQ_WORK_TOKEN", "")
+VERSION = "0.3.0"
 
 
 @dataclass(frozen=True)
@@ -60,23 +31,47 @@ class Settings:
     temperature: float | None = 0.4
     top_p: float | None = 0.95
     max_turns: int = 80
-    stage_retries: int = 3
-    review_cycles: int = 3
-    max_files: int = 10
-    max_related: int = 3
-    max_file_processes: int = 40
 
-    def validate(self) -> None:
-        if self.max_context_tokens + self.max_output_tokens > 204_800 - 2_048:
-            raise ValueError("context + output exceeds the server window")
+
+def load_env_file(path: pathlib.Path = ENV_FILE) -> dict[str, str]:
+    out: dict[str, str] = {}
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        k, v = k.strip(), v.strip()
+        if k and (v.startswith('"') or v.startswith("'")) and v.endswith(v[0]) \
+                and len(v) >= 2:
+            v = v[1:-1]
+        out[k] = v
+    return out
+
+
+def env() -> dict[str, str]:
+    e = dict(load_env_file())
+    e.update({k: v for k, v in os.environ.items() if v})
+    return e
+
+
+def get_credentials() -> tuple[str, str, str]:
+    e = env()
+    return e.get("IQ_TASK_LOGIN", "iq"), e.get("IQ_TASK_PASSWORD", ""), e.get("IQ_TASK_DEVICE", "")
+
+
+def get_work_token() -> str:
+    return env().get("IQ_WORK_TOKEN", "")
 
 
 def load_settings() -> Settings:
     e = env()
-    s = Settings(
-        base_url=e.get("MTPLX_URL", Settings.base_url),
-        model=e.get("MTPLX_MODEL", Settings.model),
-        api_key=e.get("MTPLX_API_KEY", Settings.api_key),
+    return Settings(
+        model=e.get("MTPLX_MODEL", "mtplx-qwen38-27b-optimized-speed"),
+        base_url=e.get("MTPLX_URL", "http://127.0.0.1:8000").rstrip("/"),
+        api_key=e.get("MTPLX_API_KEY", "mtplx-local"),
+        client_header="iq-task",
     )
-    s.validate()
-    return s

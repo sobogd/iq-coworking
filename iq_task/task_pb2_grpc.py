@@ -35,59 +35,69 @@ class HarnessStub:
             channel: A grpc.Channel.
         """
         self.Ping = channel.unary_unary(
-                '/iqt.Harness/Ping',
+                '/iq.Harness/Ping',
                 request_serializer=task__pb2.PingRequest.SerializeToString,
                 response_deserializer=task__pb2.PingResponse.FromString,
                 _registered_method=True)
         self.Login = channel.unary_unary(
-                '/iqt.Harness/Login',
+                '/iq.Harness/Login',
                 request_serializer=task__pb2.LoginRequest.SerializeToString,
                 response_deserializer=task__pb2.LoginResponse.FromString,
                 _registered_method=True)
-        self.CreateTask = channel.unary_unary(
-                '/iqt.Harness/CreateTask',
-                request_serializer=task__pb2.CreateTaskRequest.SerializeToString,
-                response_deserializer=task__pb2.Task.FromString,
+        self.CreateSession = channel.unary_unary(
+                '/iq.Harness/CreateSession',
+                request_serializer=task__pb2.CreateSessionRequest.SerializeToString,
+                response_deserializer=task__pb2.Session.FromString,
                 _registered_method=True)
-        self.GetTask = channel.unary_unary(
-                '/iqt.Harness/GetTask',
-                request_serializer=task__pb2.TaskRef.SerializeToString,
-                response_deserializer=task__pb2.Task.FromString,
+        self.GetSession = channel.unary_unary(
+                '/iq.Harness/GetSession',
+                request_serializer=task__pb2.SessionRef.SerializeToString,
+                response_deserializer=task__pb2.Session.FromString,
                 _registered_method=True)
-        self.ListTasks = channel.unary_unary(
-                '/iqt.Harness/ListTasks',
+        self.ListSessions = channel.unary_unary(
+                '/iq.Harness/ListSessions',
                 request_serializer=task__pb2.ListRequest.SerializeToString,
-                response_deserializer=task__pb2.Tasks.FromString,
+                response_deserializer=task__pb2.Sessions.FromString,
                 _registered_method=True)
-        self.WatchTask = channel.unary_stream(
-                '/iqt.Harness/WatchTask',
+        self.WatchSession = channel.unary_stream(
+                '/iq.Harness/WatchSession',
                 request_serializer=task__pb2.WatchRequest.SerializeToString,
-                response_deserializer=task__pb2.Task.FromString,
+                response_deserializer=task__pb2.Session.FromString,
                 _registered_method=True)
-        self.StopTask = channel.unary_unary(
-                '/iqt.Harness/StopTask',
-                request_serializer=task__pb2.TaskRef.SerializeToString,
-                response_deserializer=task__pb2.Task.FromString,
+        self.StopSession = channel.unary_unary(
+                '/iq.Harness/StopSession',
+                request_serializer=task__pb2.SessionRef.SerializeToString,
+                response_deserializer=task__pb2.Session.FromString,
                 _registered_method=True)
-        self.ResumeTask = channel.unary_unary(
-                '/iqt.Harness/ResumeTask',
-                request_serializer=task__pb2.TaskRef.SerializeToString,
-                response_deserializer=task__pb2.Task.FromString,
+        self.ResumeSession = channel.unary_unary(
+                '/iq.Harness/ResumeSession',
+                request_serializer=task__pb2.SessionRef.SerializeToString,
+                response_deserializer=task__pb2.Session.FromString,
                 _registered_method=True)
-        self.DeleteTask = channel.unary_unary(
-                '/iqt.Harness/DeleteTask',
-                request_serializer=task__pb2.TaskRef.SerializeToString,
-                response_deserializer=task__pb2.TaskRef.FromString,
+        self.DeleteSession = channel.unary_unary(
+                '/iq.Harness/DeleteSession',
+                request_serializer=task__pb2.SessionRef.SerializeToString,
+                response_deserializer=task__pb2.SessionRef.FromString,
                 _registered_method=True)
-        self.ListRepos = channel.unary_unary(
-                '/iqt.Harness/ListRepos',
-                request_serializer=task__pb2.ListRequest.SerializeToString,
-                response_deserializer=task__pb2.Repos.FromString,
+        self.SendMessage = channel.unary_unary(
+                '/iq.Harness/SendMessage',
+                request_serializer=task__pb2.MessageRequest.SerializeToString,
+                response_deserializer=task__pb2.Session.FromString,
                 _registered_method=True)
-        self.GetArtifacts = channel.unary_unary(
-                '/iqt.Harness/GetArtifacts',
-                request_serializer=task__pb2.TaskRef.SerializeToString,
-                response_deserializer=task__pb2.Artifacts.FromString,
+        self.GetActivity = channel.unary_unary(
+                '/iq.Harness/GetActivity',
+                request_serializer=task__pb2.SessionRef.SerializeToString,
+                response_deserializer=task__pb2.Activity.FromString,
+                _registered_method=True)
+        self.ListDirs = channel.unary_unary(
+                '/iq.Harness/ListDirs',
+                request_serializer=task__pb2.DirsRequest.SerializeToString,
+                response_deserializer=task__pb2.Dirs.FromString,
+                _registered_method=True)
+        self.Complete = channel.unary_unary(
+                '/iq.Harness/Complete',
+                request_serializer=task__pb2.CompleteRequest.SerializeToString,
+                response_deserializer=task__pb2.CompleteResponse.FromString,
                 _registered_method=True)
 
 
@@ -106,55 +116,67 @@ class HarnessServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def CreateTask(self, request, context):
+    def CreateSession(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetTask(self, request, context):
+    def GetSession(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ListTasks(self, request, context):
+    def ListSessions(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def WatchTask(self, request, context):
+    def WatchSession(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def StopTask(self, request, context):
+    def StopSession(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ResumeTask(self, request, context):
+    def ResumeSession(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def DeleteTask(self, request, context):
+    def DeleteSession(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ListRepos(self, request, context):
+    def SendMessage(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetArtifacts(self, request, context):
+    def GetActivity(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListDirs(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Complete(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -173,56 +195,66 @@ def add_HarnessServicer_to_server(servicer, server):
                     request_deserializer=task__pb2.LoginRequest.FromString,
                     response_serializer=task__pb2.LoginResponse.SerializeToString,
             ),
-            'CreateTask': grpc.unary_unary_rpc_method_handler(
-                    servicer.CreateTask,
-                    request_deserializer=task__pb2.CreateTaskRequest.FromString,
-                    response_serializer=task__pb2.Task.SerializeToString,
+            'CreateSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateSession,
+                    request_deserializer=task__pb2.CreateSessionRequest.FromString,
+                    response_serializer=task__pb2.Session.SerializeToString,
             ),
-            'GetTask': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetTask,
-                    request_deserializer=task__pb2.TaskRef.FromString,
-                    response_serializer=task__pb2.Task.SerializeToString,
+            'GetSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetSession,
+                    request_deserializer=task__pb2.SessionRef.FromString,
+                    response_serializer=task__pb2.Session.SerializeToString,
             ),
-            'ListTasks': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListTasks,
+            'ListSessions': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListSessions,
                     request_deserializer=task__pb2.ListRequest.FromString,
-                    response_serializer=task__pb2.Tasks.SerializeToString,
+                    response_serializer=task__pb2.Sessions.SerializeToString,
             ),
-            'WatchTask': grpc.unary_stream_rpc_method_handler(
-                    servicer.WatchTask,
+            'WatchSession': grpc.unary_stream_rpc_method_handler(
+                    servicer.WatchSession,
                     request_deserializer=task__pb2.WatchRequest.FromString,
-                    response_serializer=task__pb2.Task.SerializeToString,
+                    response_serializer=task__pb2.Session.SerializeToString,
             ),
-            'StopTask': grpc.unary_unary_rpc_method_handler(
-                    servicer.StopTask,
-                    request_deserializer=task__pb2.TaskRef.FromString,
-                    response_serializer=task__pb2.Task.SerializeToString,
+            'StopSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopSession,
+                    request_deserializer=task__pb2.SessionRef.FromString,
+                    response_serializer=task__pb2.Session.SerializeToString,
             ),
-            'ResumeTask': grpc.unary_unary_rpc_method_handler(
-                    servicer.ResumeTask,
-                    request_deserializer=task__pb2.TaskRef.FromString,
-                    response_serializer=task__pb2.Task.SerializeToString,
+            'ResumeSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.ResumeSession,
+                    request_deserializer=task__pb2.SessionRef.FromString,
+                    response_serializer=task__pb2.Session.SerializeToString,
             ),
-            'DeleteTask': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeleteTask,
-                    request_deserializer=task__pb2.TaskRef.FromString,
-                    response_serializer=task__pb2.TaskRef.SerializeToString,
+            'DeleteSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteSession,
+                    request_deserializer=task__pb2.SessionRef.FromString,
+                    response_serializer=task__pb2.SessionRef.SerializeToString,
             ),
-            'ListRepos': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListRepos,
-                    request_deserializer=task__pb2.ListRequest.FromString,
-                    response_serializer=task__pb2.Repos.SerializeToString,
+            'SendMessage': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendMessage,
+                    request_deserializer=task__pb2.MessageRequest.FromString,
+                    response_serializer=task__pb2.Session.SerializeToString,
             ),
-            'GetArtifacts': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetArtifacts,
-                    request_deserializer=task__pb2.TaskRef.FromString,
-                    response_serializer=task__pb2.Artifacts.SerializeToString,
+            'GetActivity': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetActivity,
+                    request_deserializer=task__pb2.SessionRef.FromString,
+                    response_serializer=task__pb2.Activity.SerializeToString,
+            ),
+            'ListDirs': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListDirs,
+                    request_deserializer=task__pb2.DirsRequest.FromString,
+                    response_serializer=task__pb2.Dirs.SerializeToString,
+            ),
+            'Complete': grpc.unary_unary_rpc_method_handler(
+                    servicer.Complete,
+                    request_deserializer=task__pb2.CompleteRequest.FromString,
+                    response_serializer=task__pb2.CompleteResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'iqt.Harness', rpc_method_handlers)
+            'iq.Harness', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('iqt.Harness', rpc_method_handlers)
+    server.add_registered_method_handlers('iq.Harness', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -243,7 +275,7 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/Ping',
+            '/iq.Harness/Ping',
             task__pb2.PingRequest.SerializeToString,
             task__pb2.PingResponse.FromString,
             options,
@@ -270,7 +302,7 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/Login',
+            '/iq.Harness/Login',
             task__pb2.LoginRequest.SerializeToString,
             task__pb2.LoginResponse.FromString,
             options,
@@ -284,7 +316,7 @@ class Harness:
             _registered_method=True)
 
     @staticmethod
-    def CreateTask(request,
+    def CreateSession(request,
             target,
             options=(),
             channel_credentials=None,
@@ -297,9 +329,9 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/CreateTask',
-            task__pb2.CreateTaskRequest.SerializeToString,
-            task__pb2.Task.FromString,
+            '/iq.Harness/CreateSession',
+            task__pb2.CreateSessionRequest.SerializeToString,
+            task__pb2.Session.FromString,
             options,
             channel_credentials,
             insecure,
@@ -311,7 +343,7 @@ class Harness:
             _registered_method=True)
 
     @staticmethod
-    def GetTask(request,
+    def GetSession(request,
             target,
             options=(),
             channel_credentials=None,
@@ -324,9 +356,9 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/GetTask',
-            task__pb2.TaskRef.SerializeToString,
-            task__pb2.Task.FromString,
+            '/iq.Harness/GetSession',
+            task__pb2.SessionRef.SerializeToString,
+            task__pb2.Session.FromString,
             options,
             channel_credentials,
             insecure,
@@ -338,7 +370,7 @@ class Harness:
             _registered_method=True)
 
     @staticmethod
-    def ListTasks(request,
+    def ListSessions(request,
             target,
             options=(),
             channel_credentials=None,
@@ -351,9 +383,9 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/ListTasks',
+            '/iq.Harness/ListSessions',
             task__pb2.ListRequest.SerializeToString,
-            task__pb2.Tasks.FromString,
+            task__pb2.Sessions.FromString,
             options,
             channel_credentials,
             insecure,
@@ -365,7 +397,7 @@ class Harness:
             _registered_method=True)
 
     @staticmethod
-    def WatchTask(request,
+    def WatchSession(request,
             target,
             options=(),
             channel_credentials=None,
@@ -378,9 +410,9 @@ class Harness:
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/iqt.Harness/WatchTask',
+            '/iq.Harness/WatchSession',
             task__pb2.WatchRequest.SerializeToString,
-            task__pb2.Task.FromString,
+            task__pb2.Session.FromString,
             options,
             channel_credentials,
             insecure,
@@ -392,7 +424,7 @@ class Harness:
             _registered_method=True)
 
     @staticmethod
-    def StopTask(request,
+    def StopSession(request,
             target,
             options=(),
             channel_credentials=None,
@@ -405,9 +437,9 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/StopTask',
-            task__pb2.TaskRef.SerializeToString,
-            task__pb2.Task.FromString,
+            '/iq.Harness/StopSession',
+            task__pb2.SessionRef.SerializeToString,
+            task__pb2.Session.FromString,
             options,
             channel_credentials,
             insecure,
@@ -419,7 +451,7 @@ class Harness:
             _registered_method=True)
 
     @staticmethod
-    def ResumeTask(request,
+    def ResumeSession(request,
             target,
             options=(),
             channel_credentials=None,
@@ -432,9 +464,9 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/ResumeTask',
-            task__pb2.TaskRef.SerializeToString,
-            task__pb2.Task.FromString,
+            '/iq.Harness/ResumeSession',
+            task__pb2.SessionRef.SerializeToString,
+            task__pb2.Session.FromString,
             options,
             channel_credentials,
             insecure,
@@ -446,7 +478,7 @@ class Harness:
             _registered_method=True)
 
     @staticmethod
-    def DeleteTask(request,
+    def DeleteSession(request,
             target,
             options=(),
             channel_credentials=None,
@@ -459,9 +491,9 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/DeleteTask',
-            task__pb2.TaskRef.SerializeToString,
-            task__pb2.TaskRef.FromString,
+            '/iq.Harness/DeleteSession',
+            task__pb2.SessionRef.SerializeToString,
+            task__pb2.SessionRef.FromString,
             options,
             channel_credentials,
             insecure,
@@ -473,7 +505,7 @@ class Harness:
             _registered_method=True)
 
     @staticmethod
-    def ListRepos(request,
+    def SendMessage(request,
             target,
             options=(),
             channel_credentials=None,
@@ -486,9 +518,9 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/ListRepos',
-            task__pb2.ListRequest.SerializeToString,
-            task__pb2.Repos.FromString,
+            '/iq.Harness/SendMessage',
+            task__pb2.MessageRequest.SerializeToString,
+            task__pb2.Session.FromString,
             options,
             channel_credentials,
             insecure,
@@ -500,7 +532,7 @@ class Harness:
             _registered_method=True)
 
     @staticmethod
-    def GetArtifacts(request,
+    def GetActivity(request,
             target,
             options=(),
             channel_credentials=None,
@@ -513,9 +545,63 @@ class Harness:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/iqt.Harness/GetArtifacts',
-            task__pb2.TaskRef.SerializeToString,
-            task__pb2.Artifacts.FromString,
+            '/iq.Harness/GetActivity',
+            task__pb2.SessionRef.SerializeToString,
+            task__pb2.Activity.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListDirs(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/iq.Harness/ListDirs',
+            task__pb2.DirsRequest.SerializeToString,
+            task__pb2.Dirs.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Complete(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/iq.Harness/Complete',
+            task__pb2.CompleteRequest.SerializeToString,
+            task__pb2.CompleteResponse.FromString,
             options,
             channel_credentials,
             insecure,

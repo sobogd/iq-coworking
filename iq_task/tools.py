@@ -1,28 +1,22 @@
 from __future__ import annotations
 
-import json
 import os
 import pathlib
-import subprocess
 
 OUTPUT_CAP = 20_000
-BASH_TIMEOUT = 300
-
-ROLE_TOOLS = {
-    "RESEARCH": ("read",),
-    "ANALYST": ("read",),
-    "ORCHESTRATOR": ("read",),
-    "BUILD": ("read", "write", "edit", "bash"),
-    "REVIEW": ("read", "bash"),
-}
 
 SCHEMAS = [
     {"type": "function", "function": {
         "name": "read",
         "description": ("Read a file, or list a directory (pass a directory "
-                        "path, or empty for the repo root)."),
+                        "path, or empty for the project root)."),
         "parameters": {"type": "object",
-                       "properties": {"path": {"type": "string"}},
+                       "properties": {
+                           "path": {"type": "string"},
+                           "offset": {"type": "integer",
+                                      "description": "first line (1-based)"},
+                           "limit": {"type": "integer",
+                                    "description": "max lines to return"}},
                        "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "write",
@@ -40,12 +34,6 @@ SCHEMAS = [
                                      "oldText": {"type": "string"},
                                      "newText": {"type": "string"}},
                        "required": ["path", "oldText", "newText"]}}},
-    {"type": "function", "function": {
-        "name": "bash",
-        "description": "Run a shell command in the repo root and return its output.",
-        "parameters": {"type": "object",
-                       "properties": {"command": {"type": "string"}},
-                       "required": ["command"]}}},
 ]
 
 
@@ -55,22 +43,26 @@ def _cap(text: str) -> str:
     return text[:OUTPUT_CAP] + f"\n... [truncated, {len(text)} chars total]"
 
 
-def _jail(root: pathlib.Path, path: str) -> pathlib.Path:
+def _jail(root: pathlib.Path, path: str,
+          mem: pathlib.Path | None = None) -> pathlib.Path:
     p = (root / path).resolve() if not os.path.isabs(path) \
         else pathlib.Path(path).resolve()
-    if not p.is_relative_to(root):
-        raise PermissionError(f"path escapes repo jail: {path}")
-    return p
+    if p.is_relative_to(root):
+        return p
+    if mem is not None and p.is_relative_to(mem):
+        return p
+    raise PermissionError("path escapes the project directory")
 
 
-def _read(root: pathlib.Path, path: str) -> str:
-    p = _jail(root, path or ".")
+def _read(root: pathlib.Path, path: str,
+          offset: int | None = None, limit: int | None = None,
+          mem: pathlib.Path | None = None) -> str:
+    p = _jail(root, path or ".", mem)
     if not p.exists():
         return f"error: no such path: {path}"
     if p.is_dir():
-        out = []
-        for d in sorted(p.iterdir()):
-            out.append(d.name + ("/" if d.is_dir() else ""))
+        out = [d.name + ("/" if d.is_dir() else "")
+               for d in sorted(p.iterdir())]
         return _cap("\n".join(out) or "(empty directory)")
     try:
         data = p.read_bytes()
@@ -78,7 +70,14 @@ def _read(root: pathlib.Path, path: str) -> str:
         return f"error: {e}"
     if b"\0" in data[:8192]:
         return f"error: binary file: {path}"
-    return _cap(data.decode("utf-8", "replace"))
+    lines = data.decode("utf-8", "replace").splitlines()
+    if offset is not None or limit is not None:
+        start = max(int(offset or 1) - 1, 0)
+        end = len(lines) if not limit else start + max(int(limit), 0)
+        body = "\n".join(lines[start:end])
+        return (f"lines {start + 1}-{start + len(lines[start:end])} of "
+                f"{len(lines)}\n" + body)
+    return _cap("\n".join(lines))
 
 
 def _write(root: pathlib.Path, path: str, content: str) -> str:
@@ -102,32 +101,17 @@ def _edit(root: pathlib.Path, path: str, old: str, new: str) -> str:
     return f"edited {path}"
 
 
-def _bash(root: pathlib.Path, command: str) -> str:
-    try:
-        r = subprocess.run(command, shell=True, cwd=root,
-                           capture_output=True, text=True,
-                           timeout=BASH_TIMEOUT)
-        out = (r.stdout or "") + (("\n[stderr]\n" + r.stderr) if r.stderr else "")
-        return _cap(f"exit {r.returncode}\n{out}" or f"exit {r.returncode}")
-    except subprocess.TimeoutExpired:
-        return f"error: command timed out after {BASH_TIMEOUT}s"
-
-
 def execute(name: str, args: dict, root: pathlib.Path,
-            role: str) -> str:
-    allowed = ROLE_TOOLS.get(role, ())
-    if name not in allowed:
-        return f"error: tool '{name}' is not allowed in stage {role} (allowed: {', '.join(allowed)})"
+            mem: pathlib.Path | None = None) -> str:
     try:
         if name == "read":
-            return _read(root, args.get("path", ""))
+            return _read(root, args.get("path", ""),
+                         args.get("offset"), args.get("limit"), mem)
         if name == "write":
             return _write(root, args.get("path", ""), args.get("content", ""))
         if name == "edit":
             return _edit(root, args.get("path", ""),
                          args.get("oldText", ""), args.get("newText", ""))
-        if name == "bash":
-            return _bash(root, args.get("command", ""))
         return f"error: unknown tool: {name}"
     except PermissionError as e:
         return f"error: {e}"
